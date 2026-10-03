@@ -1,22 +1,56 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type BypassResponse = {
-  ok?: boolean;
-  url?: string;
-  ms?: number;
-  method?: string;
-  needsManual?: boolean;
-  code?: string;
-  message?: string;
+  status?: boolean;
+  creator?: string;
+  error?: string;
+  runtime?: string;
+  result?: {
+    originalUrl?: string;
+    destinationUrl?: string;
+    message?: string;
+  };
 };
+
+const loadingSteps = [
+  "Memvalidasi tautan",
+  "Menghubungkan ke server",
+  "Memproses safelink",
+  "Menyiapkan hasil",
+];
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<BypassResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!loading) return;
+
+    setLoadingStep(0);
+
+    const timer1 = setTimeout(() => {
+      setLoadingStep(1);
+    }, 850);
+
+    const timer2 = setTimeout(() => {
+      setLoadingStep(2);
+    }, 1800);
+
+    const timer3 = setTimeout(() => {
+      setLoadingStep(3);
+    }, 3200);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [loading]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,9 +77,8 @@ export default function Home() {
       setResult(data);
     } catch {
       setResult({
-        ok: false,
-        code: "NETWORK",
-        message: "Gagal menghubungi server. Coba lagi.",
+        status: false,
+        error: "Gagal menghubungi server. Silakan coba lagi.",
       });
     } finally {
       setLoading(false);
@@ -53,36 +86,45 @@ export default function Home() {
   }
 
   async function copyResult() {
-    if (!result?.url) return;
+    const destination = result?.result?.destinationUrl;
+
+    if (!destination) return;
 
     try {
-      await navigator.clipboard.writeText(result.url);
+      await navigator.clipboard.writeText(destination);
+
       setCopied(true);
 
       setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch {
-      // Clipboard tidak tersedia
+      setCopied(false);
     }
   }
 
   function clearInput() {
+    if (loading) return;
+
     setUrl("");
     setResult(null);
     setCopied(false);
   }
 
+  const destinationUrl = result?.result?.destinationUrl;
+
   return (
     <main className="site-shell">
+      {/* Background */}
       <div className="background-glow glow-one" />
       <div className="background-glow glow-two" />
 
+      {/* HERO */}
       <section className="hero">
         <div className="hero-image-wrap">
           <img
             src="/hero.jpg"
-            alt="Aesthetic background"
+            alt="AIXI Safelinku"
             className="hero-image"
           />
 
@@ -107,17 +149,19 @@ export default function Home() {
           </h1>
 
           <p className="hero-description">
-            Paste your supported link below and get the destination URL
-            quickly, cleanly, and without unnecessary steps.
+            Masukkan link safelink yang didukung untuk mendapatkan
+            destination URL dengan proses yang cepat dan simpel.
           </p>
         </div>
       </section>
 
+      {/* INPUT CARD */}
       <section className="tool-card">
         <div className="card-header">
           <div>
             <p className="card-label">DESTINATION URL</p>
-            <h2>Enter your link</h2>
+
+            <h2>Masukkan link kamu</h2>
           </div>
 
           <div className="sparkle">✦</div>
@@ -143,7 +187,7 @@ export default function Home() {
                 type="button"
                 className="clear-button"
                 onClick={clearInput}
-                aria-label="Clear"
+                aria-label="Clear URL"
               >
                 ×
               </button>
@@ -158,11 +202,12 @@ export default function Home() {
             {loading ? (
               <>
                 <span className="loader" />
-                <span>PROCESSING</span>
+                <span>MEMPROSES LINK</span>
               </>
             ) : (
               <>
                 <span>BYPASS LINK</span>
+
                 <span className="button-arrow">→</span>
               </>
             )}
@@ -171,73 +216,162 @@ export default function Home() {
 
         <div className="supported">
           <span className="check">✓</span>
-          <span>Supported safelink detection</span>
+          <span>Safelink detection aktif</span>
         </div>
       </section>
 
-      {result && (
+      {/* PROCESSING */}
+      {loading && (
+        <section className="processing-card">
+          <div className="processing-header">
+            <div className="processing-spinner">
+              <span />
+            </div>
+
+            <div>
+              <p className="processing-label">PLEASE WAIT</p>
+
+              <h3>Memproses tautan</h3>
+            </div>
+          </div>
+
+          <div className="processing-line" />
+
+          <div className="processing-steps">
+            {loadingSteps.map((step, index) => {
+              const completed = index < loadingStep;
+              const active = index === loadingStep;
+
+              return (
+                <div
+                  key={step}
+                  className={`processing-step ${
+                    completed ? "completed" : ""
+                  } ${active ? "active" : ""}`}
+                >
+                  <div className="step-icon">
+                    {completed ? (
+                      "✓"
+                    ) : active ? (
+                      <span className="mini-spinner" />
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+
+                  <div className="step-text">
+                    <span>{step}</span>
+
+                    {active && (
+                      <small>
+                        Sedang berlangsung
+                        <span className="dots">...</span>
+                      </small>
+                    )}
+
+                    {completed && <small>Selesai</small>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="processing-note">
+            Jangan tutup halaman selama proses berlangsung.
+          </div>
+        </section>
+      )}
+
+      {/* RESULT */}
+      {!loading && result && (
         <section
-          className={`result-card ${result.ok ? "success" : "error"}`}
+          className={`result-card ${
+            result.status ? "success" : "error"
+          }`}
         >
-          {result.ok && result.url ? (
+          {/* SUCCESS */}
+          {result.status && destinationUrl ? (
             <>
               <div className="result-top">
-                <div className="result-icon success-icon">✓</div>
+                <div className="result-icon success-icon">
+                  ✓
+                </div>
 
                 <div>
-                  <p className="result-label">SUCCESS</p>
-                  <h3>Destination found</h3>
+                  <p className="result-label">
+                    BYPASS BERHASIL
+                  </p>
+
+                  <h3>Destination URL ditemukan</h3>
                 </div>
               </div>
 
-              <div className="result-url">{result.url}</div>
+              <div className="result-url">
+                {destinationUrl}
+              </div>
 
               <div className="result-actions">
-                <button onClick={copyResult} className="copy-button">
+                {/* COPY */}
+                <button
+                  type="button"
+                  onClick={copyResult}
+                  className="copy-button"
+                >
                   {copied ? "✓ Copied" : "Copy URL"}
                 </button>
 
+                {/* OPEN */}
                 <a
-                  href={result.url}
+                  href={destinationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="open-button"
                 >
-                  Open →
+                  Buka →
                 </a>
               </div>
 
-              {(result.ms !== undefined || result.method) && (
+              {result.runtime && (
                 <div className="result-meta">
-                  {result.ms !== undefined && (
-                    <span>{result.ms} ms</span>
-                  )}
+                  <span>
+                    Runtime {result.runtime}
+                  </span>
 
-                  {result.method && (
-                    <span>{result.method}</span>
-                  )}
+                  <span>
+                    ✓ Success
+                  </span>
                 </div>
               )}
             </>
           ) : (
+            /* ERROR */
             <>
               <div className="result-top">
-                <div className="result-icon error-icon">!</div>
+                <div className="result-icon error-icon">
+                  !
+                </div>
 
                 <div>
-                  <p className="result-label">REQUEST FAILED</p>
-                  <h3>{result.code || "Unable to process"}</h3>
+                  <p className="result-label">
+                    PROSES GAGAL
+                  </p>
+
+                  <h3>
+                    Tautan tidak dapat diproses
+                  </h3>
                 </div>
               </div>
 
               <p className="error-message">
-                {result.message || "The link could not be processed."}
+                {result.error ||
+                  "Terjadi kesalahan saat memproses tautan."}
               </p>
             </>
           )}
         </section>
       )}
 
+      {/* FOOTER */}
       <footer>
         <div className="footer-line" />
 
