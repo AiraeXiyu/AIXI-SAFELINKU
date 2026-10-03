@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SafeBypass Test",
-  description: "SafeBypass API client",
+  title: "AIXI SAFELINKU",
+  description: "Smart safelink destination utility",
 };
 
 export default function RootLayout({
