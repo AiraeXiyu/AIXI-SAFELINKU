@@ -1,49 +1,68 @@
 import { NextResponse } from "next/server";
 
-const API_URL = "https://safebypass.vercel.app/api/bypass";
+const API_URL =
+  "https://api.ikyyxd.my.id/tools/skiplink/sfl";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    if (!body?.url) {
+    const inputUrl = String(
+      body?.url || ""
+    ).trim();
+
+    if (!inputUrl) {
       return NextResponse.json(
         {
-          ok: false,
-          code: "INVALID",
-          message: "URL wajib diisi.",
+          status: false,
+          error: "URL wajib diisi.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: String(body.url).trim(),
-        apiKey: "",
-      }),
-      cache: "no-store",
-    });
+    const apiUrl = new URL(API_URL);
+
+    apiUrl.searchParams.set(
+      "url",
+      inputUrl
+    );
+
+    const response = await fetch(
+      apiUrl.toString(),
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
 
     const data = await response.json();
 
     return NextResponse.json(data, {
-      status: response.status,
+      status: response.ok
+        ? 200
+        : response.status,
     });
   } catch (error) {
-    console.error("Bypass proxy error:", error);
+    console.error(
+      "AIXI SAFELINKU API ERROR:",
+      error
+    );
 
     return NextResponse.json(
       {
-        ok: false,
-        code: "NETWORK",
-        message: "Gagal menghubungi API.",
+        status: false,
+        error:
+          "Gagal menghubungi server. Silakan coba lagi.",
       },
-      { status: 500 }
+      {
+        status: 502,
+      }
     );
   }
 }
