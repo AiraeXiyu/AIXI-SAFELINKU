@@ -101,9 +101,9 @@ export default function Home() {
           </div>
 
           <h1>
-            Unlock your
+            AIXI BYPASS
             <br />
-            <span>destination.</span>
+            <span>SAFELINKU (SFL/SFILE).</span>
           </h1>
 
           <p className="hero-description">
