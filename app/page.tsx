@@ -3,22 +3,17 @@
 import { FormEvent, useEffect, useState } from "react";
 
 type BypassResponse = {
-  status?: boolean;
-  creator?: string;
+  success?: boolean;
+  slug?: string;
+  url?: string;
   error?: string;
-  runtime?: string;
-  result?: {
-    originalUrl?: string;
-    destinationUrl?: string;
-    message?: string;
-  };
 };
 
 const loadingSteps = [
   "Memvalidasi tautan",
-  "Menghubungkan ke server",
+  "Menghubungkan ke XIYU API",
   "Memproses safelink",
-  "Menyiapkan hasil",
+  "Menyiapkan destination URL",
 ];
 
 export default function Home() {
@@ -55,7 +50,9 @@ export default function Home() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!url.trim() || loading) return;
+    const inputUrl = url.trim();
+
+    if (!inputUrl || loading) return;
 
     setLoading(true);
     setResult(null);
@@ -68,16 +65,27 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          url: url.trim(),
+          url: inputUrl,
         }),
       });
 
-      const data: BypassResponse = await response.json();
+      const text = await response.text();
+
+      let data: BypassResponse;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = {
+          success: false,
+          error: "Server mengembalikan response yang tidak valid.",
+        };
+      }
 
       setResult(data);
     } catch {
       setResult({
-        status: false,
+        success: false,
         error: "Gagal menghubungi server. Silakan coba lagi.",
       });
     } finally {
@@ -86,7 +94,7 @@ export default function Home() {
   }
 
   async function copyResult() {
-    const destination = result?.result?.destinationUrl;
+    const destination = result?.url;
 
     if (!destination) return;
 
@@ -111,11 +119,11 @@ export default function Home() {
     setCopied(false);
   }
 
-  const destinationUrl = result?.result?.destinationUrl;
+  const destinationUrl = result?.url;
 
   return (
     <main className="site-shell">
-      {/* Background */}
+      {/* BACKGROUND */}
       <div className="background-glow glow-one" />
       <div className="background-glow glow-two" />
 
@@ -139,18 +147,19 @@ export default function Home() {
         <div className="hero-content">
           <div className="eyebrow">
             <span>✦</span>
-            <span>SMART LINK TOOL</span>
+            <span>XIYU LINK TOOL</span>
           </div>
 
           <h1>
-            XIYU BYPASS
+            XIYU API
             <br />
             <span>SAFELINKU (SFL/SFILE).</span>
           </h1>
 
           <p className="hero-description">
-            Masukkan link safelink yang didukung untuk mendapatkan
-            destination URL dengan proses yang cepat dan simpel.
+            Masukkan link SFL / Safelinku yang didukung untuk
+            mendapatkan destination URL dengan proses yang cepat
+            dan simpel.
           </p>
         </div>
       </section>
@@ -159,7 +168,9 @@ export default function Home() {
       <section className="tool-card">
         <div className="card-header">
           <div>
-            <p className="card-label">DESTINATION URL</p>
+            <p className="card-label">
+              RESOLVE LINK SFL / SAFELINKU
+            </p>
 
             <h2>Masukkan link kamu</h2>
           </div>
@@ -168,14 +179,18 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className={`input-wrap ${loading ? "is-loading" : ""}`}>
+          <div
+            className={`input-wrap ${
+              loading ? "is-loading" : ""
+            }`}
+          >
             <span className="input-icon">⌁</span>
 
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://sfl.gl/..."
+              placeholder="https://sfl.gl/example"
               autoComplete="off"
               spellCheck={false}
               disabled={loading}
@@ -206,8 +221,7 @@ export default function Home() {
               </>
             ) : (
               <>
-                <span>BYPASS LINK</span>
-
+                <span>RESOLVE LINK</span>
                 <span className="button-arrow">→</span>
               </>
             )}
@@ -216,7 +230,7 @@ export default function Home() {
 
         <div className="supported">
           <span className="check">✓</span>
-          <span>Safelink detection aktif</span>
+          <span>SFL / Safelinku detection aktif</span>
         </div>
       </section>
 
@@ -229,7 +243,9 @@ export default function Home() {
             </div>
 
             <div>
-              <p className="processing-label">PLEASE WAIT</p>
+              <p className="processing-label">
+                PLEASE WAIT
+              </p>
 
               <h3>Memproses tautan</h3>
             </div>
@@ -265,11 +281,15 @@ export default function Home() {
                     {active && (
                       <small>
                         Sedang berlangsung
-                        <span className="dots">...</span>
+                        <span className="dots">
+                          ...
+                        </span>
                       </small>
                     )}
 
-                    {completed && <small>Selesai</small>}
+                    {completed && (
+                      <small>Selesai</small>
+                    )}
                   </div>
                 </div>
               );
@@ -286,11 +306,10 @@ export default function Home() {
       {!loading && result && (
         <section
           className={`result-card ${
-            result.status ? "success" : "error"
+            result.success ? "success" : "error"
           }`}
         >
-          {/* SUCCESS */}
-          {result.status && destinationUrl ? (
+          {result.success && destinationUrl ? (
             <>
               <div className="result-top">
                 <div className="result-icon success-icon">
@@ -299,28 +318,40 @@ export default function Home() {
 
                 <div>
                   <p className="result-label">
-                    BYPASS BERHASIL
+                    RESOLVE BERHASIL
                   </p>
 
-                  <h3>Destination URL ditemukan</h3>
+                  <h3>
+                    Destination URL ditemukan
+                  </h3>
                 </div>
               </div>
+
+              {result.slug && (
+                <div className="result-meta">
+                  <span>
+                    Slug: {result.slug}
+                  </span>
+
+                  <span>✓ Success</span>
+                </div>
+              )}
 
               <div className="result-url">
                 {destinationUrl}
               </div>
 
               <div className="result-actions">
-                {/* COPY */}
                 <button
                   type="button"
                   onClick={copyResult}
                   className="copy-button"
                 >
-                  {copied ? "✓ Copied" : "Copy URL"}
+                  {copied
+                    ? "✓ Copied"
+                    : "Copy URL"}
                 </button>
 
-                {/* OPEN */}
                 <a
                   href={destinationUrl}
                   target="_blank"
@@ -330,21 +361,8 @@ export default function Home() {
                   Buka →
                 </a>
               </div>
-
-              {result.runtime && (
-                <div className="result-meta">
-                  <span>
-                    Runtime {result.runtime}
-                  </span>
-
-                  <span>
-                    ✓ Success
-                  </span>
-                </div>
-              )}
             </>
           ) : (
-            /* ERROR */
             <>
               <div className="result-top">
                 <div className="result-icon error-icon">
@@ -371,14 +389,57 @@ export default function Home() {
         </section>
       )}
 
+      {/* API INFORMATION */}
+      <section className="tool-card">
+        <div className="card-header">
+          <div>
+            <p className="card-label">
+              XIYU API
+            </p>
+
+            <h2>API Information</h2>
+          </div>
+
+          <div className="sparkle">✦</div>
+        </div>
+
+        <div className="result-url">
+          https://xiyu-safelinku-api.vercel.app
+        </div>
+
+        <div className="supported">
+          <span className="check">✓</span>
+
+          <span>
+            GET /bypass?url=https://sfl.gl/example
+          </span>
+        </div>
+
+        <div className="supported">
+          <span className="check">✓</span>
+
+          <span>
+            GET /bypass?slug=example
+          </span>
+        </div>
+
+        <div className="supported">
+          <span className="check">✓</span>
+
+          <span>
+            GET /api/health
+          </span>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer>
         <div className="footer-line" />
 
         <div className="footer-content">
-          <span>AIXI SAFELINKU</span>
+          <span>XIYU API</span>
           <span>•</span>
-          <span>LINK UTILITY</span>
+          <span>SFL / SAFELINKU</span>
         </div>
       </footer>
     </main>
