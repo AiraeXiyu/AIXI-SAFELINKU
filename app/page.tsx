@@ -124,7 +124,7 @@ export default function Home() {
         <div className="hero-image-wrap">
           <img
             src="/hero.jpg"
-            alt="AIXI Safelinku"
+            alt="XIYU Safelinku"
             className="hero-image"
           />
 
@@ -143,7 +143,7 @@ export default function Home() {
           </div>
 
           <h1>
-            AIXI BYPASS
+            XIYU BYPASS
             <br />
             <span>SAFELINKU (SFL/SFILE).</span>
           </h1>
